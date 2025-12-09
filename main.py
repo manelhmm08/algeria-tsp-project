@@ -196,31 +196,39 @@ print("Tabu Search best route:", [cities.iloc[i]['city'] for i in ts_route])
 
 #Recherche par Algorithme génétique
 def crossover(parent1, parent2):
-    # Order crossover (OX) implementation
     size = len(parent1)
     start, end = sorted(random.sample(range(1, size - 1), 2))
     
-    child = [-1]*size
+    child = [None] * size
     child[0], child[-1] = parent1[0], parent1[-1]
     
-    # Copy segment from parent1
-    child[start:end+1] = parent1[start:end+1]
+    # Copie segment parent1
+    for i in range(start, end + 1):
+        child[i] = parent1[i]
     
-    # Fill rest from parent2 in order
-    p2_filtered = [city for city in parent2 if city not in child]
-    pos = 1
-    for city in p2_filtered:
-        if child[pos] == -1:
-            child[pos] = city
-            pos += 1
+    # Liste villes parent2 SANS Algiers
+    p2_cities = parent2[1:-1]
+    
+    # Remplissage circulaire garanti
+    child_pos = 1
+    p2_pos = 0
+    while child_pos < size - 1:
+        if child[child_pos] is None:
+            while p2_cities[p2_pos % len(p2_cities)] in child:
+                p2_pos += 1
+            child[child_pos] = p2_cities[p2_pos % len(p2_cities)]
+            p2_pos += 1
+        child_pos += 1
     
     return child
+
 
 def mutate(route, mutation_rate=0.1):
     if random.random() < mutation_rate:
         i, j = random.sample(range(1, len(route) - 1), 2)
         route[i], route[j] = route[j], route[i]
     return route
+
 
 def genetic_algorithm(pop_size=50, generations=200):
     population = [random_route() for _ in range(pop_size)]
@@ -229,7 +237,6 @@ def genetic_algorithm(pop_size=50, generations=200):
         population = sorted(population, key=route_distance)
         new_population = population[:int(pop_size*0.2)]  # elitism 20%
         
-        # Generate next population by crossover and mutation
         while len(new_population) < pop_size:
             parents = random.sample(population[:25], 2)  # top 50%
             child = crossover(parents[0], parents[1])
@@ -241,6 +248,7 @@ def genetic_algorithm(pop_size=50, generations=200):
     best_individual = min(population, key=route_distance)
     best_distance = route_distance(best_individual)
     return best_individual, best_distance
+
 
 ga_route, ga_dist = genetic_algorithm()
 print("Genetic Algorithm best distance:", ga_dist)
